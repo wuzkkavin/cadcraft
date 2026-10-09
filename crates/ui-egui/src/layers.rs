@@ -67,7 +67,7 @@ pub fn color_palette(ui: &mut egui::Ui, id: egui::Id, current: Color, by: bool) 
     let mut tab = ui.data_mut(|d| d.get_temp::<u8>(tab_id)).unwrap_or(if matches!(current, Color::True(_)) { 1 } else { 0 });
     let mut out = None;
     ui.horizontal(|ui| {
-        for (i, l) in ["Index Color", "True Color"].iter().enumerate() {
+        for (i, l) in ["索引顏色", "全彩"].iter().enumerate() {
             if ui.selectable_label(tab == i as u8, *l).clicked() {
                 tab = i as u8;
             }
@@ -83,7 +83,7 @@ pub fn color_palette(ui: &mut egui::Ui, id: egui::Id, current: Color, by: bool) 
         if sel || resp.hovered() {
             ui.painter().rect_stroke(r, 0.0, Stroke::new(if sel { 2.0 } else { 1.0 }, Color32::WHITE), egui::StrokeKind::Inside);
         }
-        if resp.on_hover_text(format!("Index color: {i}")).clicked() {
+        if resp.on_hover_text(format!("索引顏色：{i}")).clicked() {
             *out = Some(Color::Index(i));
         }
     };
@@ -113,15 +113,15 @@ pub fn color_palette(ui: &mut egui::Ui, id: egui::Id, current: Color, by: bool) 
         ui.add_space(6.0);
         if by {
             ui.horizontal(|ui| {
-                if ui.button("ByLayer").clicked() {
+                if ui.button("依圖層").clicked() {
                     out = Some(Color::ByLayer);
                 }
-                if ui.button("ByBlock").clicked() {
+                if ui.button("依圖塊").clicked() {
                     out = Some(Color::ByBlock);
                 }
             });
         }
-        ui.label(RichText::new(format!("Current: {}", current.name())).small().color(t.text_dim));
+        ui.label(RichText::new(format!("目前：{}", current.name())).small().color(t.text_dim));
     } else {
         let rid = id.with("rgb");
         let start = current.resolve(Color::Index(7), Color::Index(7));
@@ -138,7 +138,7 @@ pub fn color_palette(ui: &mut egui::Ui, id: egui::Id, current: Color, by: bool) 
             }
         });
         ui.data_mut(|d| d.insert_temp(rid, c));
-        if ui.button("Apply true color").clicked() {
+        if ui.button("套用全彩").clicked() {
             out = Some(Color::True(cadcraft_color::Rgb(c[0], c[1], c[2])));
             ui.data_mut(|d| d.remove::<[u8; 3]>(rid));
         }
@@ -233,15 +233,15 @@ pub fn dialog(app: &mut CadApp, ctx: &egui::Context, open: &mut bool) {
         .filter(|l| q.is_empty() || crate_wild(&q, &l.name.to_lowercase()))
         .collect();
     let title = match &vp {
-        Some(_) => "Layer Properties Manager — current viewport",
-        None => "Layer Properties Manager",
+        Some(_) => "圖層性質管理員 — 目前視埠",
+        None => "圖層性質管理員",
     };
     egui::Window::new(title).id(egui::Id::new("lpm_window")).open(open).default_size(vec2(1180.0, 440.0)).min_width(640.0).resizable(true).show(
         ctx,
         |ui| {
             // ----- tool row -----
             ui.horizontal(|ui| {
-                if icons::button(ui, Icon::Plus, 24.0, "New Layer", false).clicked() {
+                if icons::button(ui, Icon::Plus, 24.0, "新增圖層", false).clicked() {
                     let mut n = 1;
                     while d.layer(&format!("Layer{n}")).is_some() {
                         n += 1;
@@ -251,20 +251,20 @@ pub fn dialog(app: &mut CadApp, ctx: &egui::Context, open: &mut bool) {
                     st.renaming = Some((name.clone(), name.clone()));
                     st.selected = Some(name);
                 }
-                if icons::button(ui, Icon::Close, 24.0, "Delete Layer", false).clicked()
+                if icons::button(ui, Icon::Close, 24.0, "刪除圖層", false).clicked()
                     && let Some(s) = &st.selected
                 {
                     actions.push(("layer.delete", json!({ "name": s })));
                 }
-                if icons::button(ui, Icon::MakeCurrent, 24.0, "Set Current", false).clicked()
+                if icons::button(ui, Icon::MakeCurrent, 24.0, "設為目前圖層", false).clicked()
                     && let Some(s) = &st.selected
                 {
                     actions.push(("layer.current", json!({ "name": s })));
                 }
                 ui.separator();
                 // Layer states.
-                ui.label("Layer State");
-                let label = st.state_sel.clone().unwrap_or_else(|| "Unsaved Layer State".into());
+                ui.label("圖層狀態");
+                let label = st.state_sel.clone().unwrap_or_else(|| "未儲存的圖層狀態".into());
                 egui::ComboBox::from_id_salt("lpm_states").selected_text(label).width(170.0).show_ui(ui, |ui| {
                     for s in &states {
                         if ui.selectable_label(st.state_sel.as_deref() == Some(s), s).clicked() {
@@ -272,29 +272,29 @@ pub fn dialog(app: &mut CadApp, ctx: &egui::Context, open: &mut bool) {
                         }
                     }
                     if states.is_empty() {
-                        ui.label(RichText::new("No saved layer states").color(t.text_dim));
+                        ui.label(RichText::new("尚無已儲存的圖層狀態").color(t.text_dim));
                     }
                 });
                 let has = st.state_sel.is_some();
-                if ui.add_enabled(has, egui::Button::new("Restore")).clicked()
+                if ui.add_enabled(has, egui::Button::new("還原")).clicked()
                     && let Some(s) = &st.state_sel
                 {
                     actions.push(("layerstate.restore", json!({ "name": s })));
                 }
-                if ui.add_enabled(has, egui::Button::new("Delete")).clicked()
+                if ui.add_enabled(has, egui::Button::new("刪除")).clicked()
                     && let Some(s) = st.state_sel.take()
                 {
                     actions.push(("layerstate.delete", json!({ "name": s })));
                 }
-                ui.add(egui::TextEdit::singleline(&mut st.state_name).hint_text("New state name").desired_width(120.0));
-                if ui.add_enabled(!st.state_name.trim().is_empty(), egui::Button::new("Save State")).clicked() {
+                ui.add(egui::TextEdit::singleline(&mut st.state_name).hint_text("新狀態名稱").desired_width(120.0));
+                if ui.add_enabled(!st.state_name.trim().is_empty(), egui::Button::new("儲存狀態")).clicked() {
                     let n = st.state_name.trim().to_string();
                     actions.push(("layerstate.save", json!({ "name": n })));
                     st.state_sel = Some(n);
                     st.state_name.clear();
                 }
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    ui.add(egui::TextEdit::singleline(&mut st.search).hint_text("Search for layer").desired_width(160.0));
+                    ui.add(egui::TextEdit::singleline(&mut st.search).hint_text("搜尋圖層").desired_width(160.0));
                     icons::paint(
                         ui.painter(),
                         Rect::from_center_size(ui.cursor().right_center() - vec2(8.0, 0.0), vec2(14.0, 14.0)),
@@ -311,8 +311,8 @@ pub fn dialog(app: &mut CadApp, ctx: &egui::Context, open: &mut bool) {
                 // ----- filter tree -----
                 ui.allocate_ui_with_layout(vec2(150.0, avail), egui::Layout::top_down(egui::Align::Min), |ui| {
                     ui.set_min_width(150.0);
-                    ui.label(RichText::new("Filters").small().color(t.text_dim));
-                    for (i, l) in ["All", "All Used Layers"].iter().enumerate() {
+                    ui.label(RichText::new("篩選").small().color(t.text_dim));
+                    for (i, l) in ["全部", "所有已使用的圖層"].iter().enumerate() {
                         ui.horizontal(|ui| {
                             ui.add_space(if i == 0 { 0.0 } else { 14.0 });
                             if ui.selectable_label(st.filter == i as u8, *l).clicked() {
@@ -322,26 +322,26 @@ pub fn dialog(app: &mut CadApp, ctx: &egui::Context, open: &mut bool) {
                     }
                     ui.add_space(8.0);
                     if let Some((h, _)) = &vp {
-                        ui.label(RichText::new(format!("Viewport {}", h.hex())).small().color(t.text_dim));
+                        ui.label(RichText::new(format!("視埠 {}", h.hex())).small().color(t.text_dim));
                     }
                 });
                 ui.separator();
                 // ----- the table -----
                 ui.vertical(|ui| {
                     egui::ScrollArea::both().id_salt("lpm_table").auto_shrink([false, false]).max_height(avail).show(ui, |ui| {
-                        let mut cols: Vec<&str> =
-                            vec!["Status", "Name", "On", "Freeze", "Lock", "Plot", "Color", "Linetype", "Lineweight", "Transparency"];
+                        let mut cols: Vec<&str> = vec!["狀態", "名稱", "開", "凍結", "鎖定", "出圖", "顏色", "線型", "線寬", "透明度"];
                         if vp.is_some() {
-                            cols.extend(["VP Freeze", "VP Color"]);
+                            cols.extend(["視埠凍結", "視埠顏色"]);
                         }
-                        cols.extend(["New VP Freeze", "Description"]);
+                        cols.extend(["新視埠凍結", "說明"]);
                         egui::Grid::new("lpm_grid").striped(true).num_columns(cols.len()).spacing(vec2(10.0, 3.0)).min_row_height(22.0).show(
                             ui,
                             |ui| {
                                 for h in &cols {
-                                    if *h == "Name" {
+                                    if *h == "名稱" {
                                         let arrow = if st.sort_desc { " ▼" } else { " ▲" };
-                                        if ui.add(egui::Label::new(RichText::new(format!("Name{arrow}")).strong()).sense(Sense::click())).clicked() {
+                                        if ui.add(egui::Label::new(RichText::new(format!("名稱{arrow}")).strong()).sense(Sense::click())).clicked()
+                                        {
                                             st.sort_desc = !st.sort_desc;
                                         }
                                     } else {
@@ -361,9 +361,7 @@ pub fn dialog(app: &mut CadApp, ctx: &egui::Context, open: &mut bool) {
             ui.separator();
             ui.horizontal(|ui| {
                 ui.label(
-                    RichText::new(format!("All: {} layer(s) displayed of {} total.   Current layer: {}", shown.len(), total, cur))
-                        .small()
-                        .color(t.text_dim),
+                    RichText::new(format!("全部：顯示 {} 個圖層，共 {} 個。   目前圖層：{}", shown.len(), total, cur)).small().color(t.text_dim),
                 );
             });
         },
@@ -398,11 +396,11 @@ fn row(
     }
     status_icon(ui.painter(), sr.shrink(2.0), current, is_used);
     let tip = if current {
-        "Current layer"
+        "目前圖層"
     } else if is_used {
-        "Layer contains objects (double-click to make current)"
+        "圖層含有物件（按兩下設為目前圖層）"
     } else {
-        "Layer is empty (double-click to make current)"
+        "圖層是空的（按兩下設為目前圖層）"
     };
     if sresp.on_hover_text(tip).double_clicked() {
         actions.push(("layer.current", json!({ "name": name })));
@@ -440,15 +438,15 @@ fn row(
                 st.renaming = Some((name.clone(), name.clone()));
             }
             r.context_menu(|ui| {
-                if ui.button("Set Current").clicked() {
+                if ui.button("設為目前圖層").clicked() {
                     actions.push(("layer.current", json!({ "name": name })));
                     ui.close();
                 }
-                if ui.button("Rename Layer").clicked() {
+                if ui.button("重新命名圖層").clicked() {
                     st.renaming = Some((name.clone(), name.clone()));
                     ui.close();
                 }
-                if ui.button("Delete Layer").clicked() {
+                if ui.button("刪除圖層").clicked() {
                     actions.push(("layer.delete", json!({ "name": name })));
                     ui.close();
                 }
@@ -456,16 +454,16 @@ fn row(
         }
     }
     // On / Freeze / Lock / Plot.
-    if icons::button(ui, if l.on { Icon::Bulb } else { Icon::BulbOff }, 20.0, "On/Off", false).clicked() {
+    if icons::button(ui, if l.on { Icon::Bulb } else { Icon::BulbOff }, 20.0, "開/關", false).clicked() {
         actions.push(("layer.set", json!({ "name": name, "on": !l.on })));
     }
-    if icons::button(ui, if l.frozen { Icon::Snowflake } else { Icon::Sun }, 20.0, "Freeze/Thaw in all viewports", false).clicked() {
+    if icons::button(ui, if l.frozen { Icon::Snowflake } else { Icon::Sun }, 20.0, "在所有視埠中凍結/解凍", false).clicked() {
         actions.push(("layer.set", json!({ "name": name, "frozen": !l.frozen })));
     }
-    if icons::button(ui, if l.locked { Icon::Lock } else { Icon::Unlock }, 20.0, "Lock/Unlock", false).clicked() {
+    if icons::button(ui, if l.locked { Icon::Lock } else { Icon::Unlock }, 20.0, "鎖定/解鎖", false).clicked() {
         actions.push(("layer.set", json!({ "name": name, "locked": !l.locked })));
     }
-    let pr = icons::button(ui, Icon::Plot, 20.0, if l.plot { "Plot (click: do not plot)" } else { "Do not plot (click: plot)" }, false);
+    let pr = icons::button(ui, Icon::Plot, 20.0, if l.plot { "出圖（點按：不出圖）" } else { "不出圖（點按：出圖）" }, false);
     if !l.plot {
         let r = pr.rect.shrink(3.0);
         ui.painter().line_segment([r.left_bottom(), r.right_top()], Stroke::new(1.6, Color32::from_rgb(0xe0, 0x50, 0x50)));
@@ -499,7 +497,7 @@ fn row(
         .width(240.0)
         .close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside)
         .show(|ui| {
-            ui.label(RichText::new("Loaded linetypes").small().color(t.text_dim));
+            ui.label(RichText::new("已載入的線型").small().color(t.text_dim));
             for lt in linetypes.iter().filter(|x| !["bylayer", "byblock"].contains(&x.name.to_ascii_lowercase().as_str())) {
                 let (r, resp) = ui.allocate_exact_size(vec2(230.0, 20.0), Sense::click());
                 if resp.hovered() || lt.name.eq_ignore_ascii_case(&l.linetype) {
@@ -514,7 +512,7 @@ fn row(
             }
             if !library.is_empty() {
                 ui.separator();
-                ui.menu_button("Load...", |ui| {
+                ui.menu_button("載入...", |ui| {
                     egui::ScrollArea::vertical().max_height(300.0).show(ui, |ui| {
                         for n in library {
                             if ui.button(n).clicked() {
@@ -525,7 +523,7 @@ fn row(
                         }
                     });
                     ui.separator();
-                    if ui.button("Load all").clicked() {
+                    if ui.button("載入全部").clicked() {
                         actions.push(("linetype", json!({ "load": "*" })));
                         ui.close();
                     }
@@ -585,7 +583,7 @@ fn row(
     // VP Freeze / VP Color (inside a layout viewport).
     if let Some((h, v)) = vp {
         let vf = v.frozen_layers.iter().any(|f| f.eq_ignore_ascii_case(&name));
-        if icons::button(ui, if vf { Icon::Snowflake } else { Icon::Sun }, 20.0, "Freeze/Thaw in the current viewport", false).clicked() {
+        if icons::button(ui, if vf { Icon::Snowflake } else { Icon::Sun }, 20.0, "在目前視埠中凍結/解凍", false).clicked() {
             let key = if vf { "thaw" } else { "freeze" };
             actions.push(("vplayer", json!({ "handle": h.hex(), key: [name] })));
         }
@@ -594,13 +592,13 @@ fn row(
             if let Some(c) = color_button(ui, egui::Id::new(("lpm_vpcolor", &name)), vc.unwrap_or(l.color), false, 96.0) {
                 actions.push(("vplayer", json!({ "handle": h.hex(), "colors": { name.clone(): c.name() } })));
             }
-            if vc.is_some() && ui.small_button("×").on_hover_text("Remove the viewport override").clicked() {
+            if vc.is_some() && ui.small_button("×").on_hover_text("移除視埠取代").clicked() {
                 actions.push(("vplayer", json!({ "handle": h.hex(), "colors": { name.clone(): Value::Null } })));
             }
         });
     }
     // New VP Freeze.
-    let nvf = icons::button(ui, if l.vp_freeze_new { Icon::Snowflake } else { Icon::Sun }, 20.0, "Freeze in new viewports", false);
+    let nvf = icons::button(ui, if l.vp_freeze_new { Icon::Snowflake } else { Icon::Sun }, 20.0, "在新視埠中凍結", false);
     {
         // A small "new" mark distinguishes it from the Freeze column.
         let r = nvf.rect;
@@ -628,7 +626,7 @@ fn row(
         _ => {
             let text = if l.description.is_empty() { RichText::new("—").color(t.text_faint) } else { RichText::new(&l.description) };
             let r = ui.add_sized([200.0, 20.0], egui::Label::new(text).sense(Sense::click()).truncate());
-            if r.on_hover_text("Double-click to edit the description").double_clicked() {
+            if r.on_hover_text("按兩下以編輯說明").double_clicked() {
                 st.describing = Some((name.clone(), l.description.clone()));
             }
         }

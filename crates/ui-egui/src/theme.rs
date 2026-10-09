@@ -86,8 +86,23 @@ pub fn mono() -> FontId {
     FontId::new(12.0, FontFamily::Monospace)
 }
 
-/// Load a system UI font at run time when one is installed (not bundled), else keep egui's.
+/// 內嵌的 jf open 粉圓 2.1（justfont 開放粉圓字型，SIL OFL 1.1 授權，授權全文見 assets/OFL.txt）。
+/// 為什麼內嵌：原本只載入系統西文字型，中文字會變豆腐字；粉圓體同時含繁中與拉丁字元，
+/// 內嵌後任何平台（含 WebAssembly）打開就是中文介面，不必先在系統裝字型。
+static HUNINN: &[u8] = include_bytes!("../assets/jf-openhuninn-2.1.ttf");
+
+/// Install the bundled jf open huninn font as the primary UI font (it covers both
+/// Traditional Chinese and Latin), keeping a system UI font as fallback for glyphs
+/// huninn lacks, and huninn itself as the CJK fallback for the monospace family.
 pub fn install_fonts(ctx: &egui::Context) {
+    let mut fonts = egui::FontDefinitions::default();
+    fonts.font_data.insert("jf-open-huninn".into(), std::sync::Arc::new(egui::FontData::from_static(HUNINN)));
+    if let Some(f) = fonts.families.get_mut(&FontFamily::Proportional) {
+        f.insert(0, "jf-open-huninn".into());
+    }
+    if let Some(f) = fonts.families.get_mut(&FontFamily::Monospace) {
+        f.push("jf-open-huninn".into());
+    }
     #[cfg(not(target_arch = "wasm32"))]
     {
         let candidates: &[&str] = if cfg!(target_os = "macos") {
@@ -102,20 +117,17 @@ pub fn install_fonts(ctx: &egui::Context) {
                 "/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf",
             ]
         };
-        let mut fonts = egui::FontDefinitions::default();
         for path in candidates {
             if let Ok(bytes) = std::fs::read(path) {
                 fonts.font_data.insert("system-ui".into(), std::sync::Arc::new(egui::FontData::from_owned(bytes)));
                 if let Some(f) = fonts.families.get_mut(&FontFamily::Proportional) {
-                    f.insert(0, "system-ui".into());
+                    f.insert(1, "system-ui".into());
                 }
                 break;
             }
         }
-        ctx.set_fonts(fonts);
     }
-    #[cfg(target_arch = "wasm32")]
-    let _ = ctx;
+    ctx.set_fonts(fonts);
 }
 
 pub fn apply(ctx: &egui::Context) {

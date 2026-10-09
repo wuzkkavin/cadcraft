@@ -49,9 +49,9 @@ impl NameMode {
 
     pub fn label(self) -> &'static str {
         match self {
-            NameMode::Username => "Username",
-            NameMode::DisplayName => "Display name",
-            NameMode::RealName => "Real name",
+            NameMode::Username => "使用者名稱",
+            NameMode::DisplayName => "顯示名稱",
+            NameMode::RealName => "真實姓名",
         }
     }
 }
@@ -88,16 +88,16 @@ impl SortKey {
     /// Menu label and table header.
     pub fn label(self) -> (&'static str, &'static str) {
         match self {
-            SortKey::Name => ("Name (A–Z)", "Name"),
-            SortKey::Prs => ("Merged PRs", "PRs"),
-            SortKey::Commits => ("Commits", "Commits"),
-            SortKey::LinesAdded => ("Lines added", "+LOC"),
-            SortKey::LinesDeleted => ("Lines deleted", "−LOC"),
-            SortKey::LinesDelta => ("Line delta", "ΔLOC"),
-            SortKey::BinaryAdded => ("Binary assets added", "+Bin"),
-            SortKey::BinaryDeleted => ("Binary assets removed", "−Bin"),
-            SortKey::FirstCommit => ("First commit", "First"),
-            SortKey::LastCommit => ("Last commit", "Last"),
+            SortKey::Name => ("名稱（A–Z）", "名稱"),
+            SortKey::Prs => ("已合併的 PR", "PR"),
+            SortKey::Commits => ("提交次數", "提交"),
+            SortKey::LinesAdded => ("新增行數", "+LOC"),
+            SortKey::LinesDeleted => ("刪除行數", "−LOC"),
+            SortKey::LinesDelta => ("行數增減", "ΔLOC"),
+            SortKey::BinaryAdded => ("新增二進位資產", "+Bin"),
+            SortKey::BinaryDeleted => ("移除二進位資產", "−Bin"),
+            SortKey::FirstCommit => ("首次提交", "首次"),
+            SortKey::LastCommit => ("最後提交", "最後"),
         }
     }
 
@@ -124,7 +124,7 @@ impl Contributor {
     /// One line with everything we know, for tooltips.
     pub fn summary(&self) -> String {
         format!(
-            "@{}: {} PRs, {} commits, +{} / −{} lines (Δ {}), +{} / −{} binary assets, {} – {}",
+            "@{}：{} 個 PR、{} 次提交、+{} / −{} 行（Δ {}）、+{} / −{} 個二進位資產、{} – {}",
             self.login,
             self.prs,
             self.commits,
@@ -215,14 +215,14 @@ pub fn contributors_ui(ui: &mut egui::Ui) {
     let id = egui::Id::new("credits_view");
     let mut v = ui.data_mut(|d| d.get_temp::<View>(id)).unwrap_or_default();
     ui.horizontal_wrapped(|ui| {
-        ui.label("Show");
+        ui.label("顯示");
         for m in NameMode::ALL {
             if ui.selectable_label(v.names == m, m.label()).clicked() {
                 v.names = m;
             }
         }
         ui.separator();
-        ui.label("Sort");
+        ui.label("排序");
         egui::ComboBox::from_id_salt("credits_sort").selected_text(v.key.label().0).show_ui(ui, |ui| {
             for k in SortKey::ALL {
                 if ui.selectable_label(v.key == k, k.label().0).clicked() {
@@ -231,23 +231,23 @@ pub fn contributors_ui(ui: &mut egui::Ui) {
                 }
             }
         });
-        if ui.button(if v.ascending { "▲" } else { "▼" }).on_hover_text("Reverse the order").clicked() {
+        if ui.button(if v.ascending { "▲" } else { "▼" }).on_hover_text("反轉順序").clicked() {
             v.ascending = !v.ascending;
         }
         ui.separator();
-        if ui.selectable_label(!v.table, "Grab bag").clicked() {
+        if ui.selectable_label(!v.table, "列表").clicked() {
             v.table = false;
         }
-        if ui.selectable_label(v.table, "Table").clicked() {
+        if ui.selectable_label(v.table, "表格").clicked() {
             v.table = true;
         }
     });
     let list = sorted(CONTRIBUTORS, v.names, v.key, v.ascending);
-    ui.label(RichText::new(format!("{} contributors · {} commits", list.len(), group(TOTAL_COMMITS))).small().weak());
+    ui.label(RichText::new(format!("{} 位貢獻者 · {} 次提交", list.len(), group(TOTAL_COMMITS))).small().weak());
     ui.separator();
     egui::ScrollArea::both().auto_shrink([false, false]).show(ui, |ui| {
         if list.is_empty() {
-            ui.label("No contributor data was built into this copy.");
+            ui.label("這份程式未內建貢獻者資料。");
         } else if v.table {
             table(ui, &list, &mut v);
         } else {
@@ -297,13 +297,13 @@ fn table(ui: &mut egui::Ui, list: &[&Contributor], v: &mut View) {
 /// About ▸ Models: AI models credited in Co-Authored-By trailers.
 pub fn models_ui(ui: &mut egui::Ui) {
     if MODELS.is_empty() {
-        ui.label("No model credits were built into this copy.");
+        ui.label("這份程式未內建模型致謝資料。");
         return;
     }
     let assisted: u64 = MODELS.iter().map(|m| m.commits).max().unwrap_or(0).max(1);
     egui::ScrollArea::both().auto_shrink([false, false]).show(ui, |ui| {
         egui::Grid::new("credits_models").striped(true).num_columns(6).show(ui, |ui| {
-            for h in ["Company", "Model", "Version", "Commits", "% of all commits", "Lines +/−"] {
+            for h in ["公司", "模型", "版本", "提交次數", "佔全部提交百分比", "行數 +/−"] {
                 ui.label(RichText::new(h).strong());
             }
             ui.end_row();

@@ -29,8 +29,8 @@ impl NativeMenu {
         let mut items = HashMap::new();
         let mut counter = 0usize;
         let app_menu = Submenu::new("CADCraft", true);
-        let about = MenuItem::with_id("cc-about", "About CADCraft", true, None);
-        let discord = MenuItem::with_id("cc-discord", "Join the ArtCraft Discord…", true, None);
+        let about = MenuItem::with_id("cc-about", "關於 CADCraft", true, None);
+        let discord = MenuItem::with_id("cc-discord", "加入 ArtCraft Discord…", true, None);
         let _ = app_menu.append_items(&[
             &about,
             &discord,

@@ -48,7 +48,7 @@ pub fn keyboard(app: &mut CadApp, ctx: &egui::Context) {
                 egui::Event::Key { key: Key::Escape, pressed: true, .. } => {
                     app.canvas.hot_grip = None;
                     app.cmd.buffer.clear();
-                    app.session.echo("*Cancel*");
+                    app.session.echo("*取消*");
                 }
                 egui::Event::Key { key: Key::Enter | Key::Space, pressed: true, .. } => {
                     let typed = std::mem::take(&mut app.cmd.buffer);
@@ -62,7 +62,7 @@ pub fn keyboard(app: &mut CadApp, ctx: &egui::Context) {
                         let base = app.canvas.hot_grip.map(|g| g.base).unwrap_or_default();
                         match cadcraft_engine::prompt::parse_point(&typed, base) {
                             Some(p) => crate::canvas::apply_hot_grip(app, p),
-                            None => app.session.echo("Requires a point (x,y, @dx,dy or @d<a)."),
+                            None => app.session.echo("需要一個點（x,y、@dx,dy 或 @d<a）。"),
                         }
                     }
                 }
@@ -186,7 +186,7 @@ pub fn show(app: &mut CadApp, ui: &mut egui::Ui, canvas: Rect) {
                 p.galley(pos2(x, bar.center().y - g.size().y / 2.0), g, t.text);
                 x += gw;
                 if !pr.keywords.is_empty() {
-                    let g = p.layout_no_wrap(if pr.message.is_empty() { " [".into() } else { " or [".into() }, font.clone(), t.text);
+                    let g = p.layout_no_wrap(if pr.message.is_empty() { " [".into() } else { " 或 [".into() }, font.clone(), t.text);
                     let gw = g.size().x;
                     p.galley(pos2(x, bar.center().y - g.size().y / 2.0), g, t.text);
                     x += gw;
@@ -229,7 +229,7 @@ pub fn show(app: &mut CadApp, ui: &mut egui::Ui, canvas: Rect) {
             }
             None => {
                 if app.cmd.buffer.is_empty() {
-                    p.text(pos2(x, bar.center().y), egui::Align2::LEFT_CENTER, "Type a command", egui::FontId::proportional(12.5), t.text_faint);
+                    p.text(pos2(x, bar.center().y), egui::Align2::LEFT_CENTER, "輸入指令", egui::FontId::proportional(12.5), t.text_faint);
                 }
             }
         }

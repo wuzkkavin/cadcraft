@@ -8,29 +8,24 @@ use crate::icons::{self, Icon};
 use crate::theme::Tokens;
 
 const TOOLBAR: &[&[(Icon, &str, &str)]] = &[
+    &[(Icon::New, "new", "新圖面 (⌘N)"), (Icon::Open, "open", "開啟 (⌘O)"), (Icon::Save, "qsave", "儲存 (⌘S)"), (Icon::SaveAs, "saveas", "另存新檔")],
+    &[(Icon::Undo, "undo", "復原 (⌘Z)"), (Icon::Redo, "redo", "重做 (⇧⌘Z)")],
     &[
-        (Icon::New, "new", "New Drawing (⌘N)"),
-        (Icon::Open, "open", "Open (⌘O)"),
-        (Icon::Save, "qsave", "Save (⌘S)"),
-        (Icon::SaveAs, "saveas", "Save As"),
+        (Icon::Plot, "plot", "出圖"),
+        (Icon::Publish, "publish", "批次發佈"),
+        (Icon::PageSetup, "pagesetup", "頁面設定管理員"),
+        (Icon::Preview, "preview", "出圖預覽"),
     ],
-    &[(Icon::Undo, "undo", "Undo (⌘Z)"), (Icon::Redo, "redo", "Redo (⇧⌘Z)")],
+    &[(Icon::Import, "import", "輸入"), (Icon::Export, "export", "輸出"), (Icon::Attach, "attach", "附著"), (Icon::Share, "share", "分享")],
+    &[(Icon::ZoomWindow, "zoom.window", "窗框縮放"), (Icon::Pan, "pan", "平移"), (Icon::Orbit, "3dorbit", "軌道")],
     &[
-        (Icon::Plot, "plot", "Print"),
-        (Icon::Publish, "publish", "Batch Publish"),
-        (Icon::PageSetup, "pagesetup", "Page Setup Manager"),
-        (Icon::Preview, "preview", "Plot Preview"),
+        (Icon::ZoomExtents, "zoom.extents", "縮放範圍"),
+        (Icon::Properties, "ui.toggle.palettes", "性質"),
+        (Icon::Layers, "ui.dialog.layers", "圖層性質管理員"),
+        (Icon::Blocks, "ui.dialog.blocks", "圖塊"),
     ],
-    &[(Icon::Import, "import", "Import"), (Icon::Export, "export", "Export"), (Icon::Attach, "attach", "Attach"), (Icon::Share, "share", "Share")],
-    &[(Icon::ZoomWindow, "zoom.window", "Zoom Window"), (Icon::Pan, "pan", "Pan"), (Icon::Orbit, "3dorbit", "Orbit")],
-    &[
-        (Icon::ZoomExtents, "zoom.extents", "Zoom Extents"),
-        (Icon::Properties, "ui.toggle.palettes", "Properties"),
-        (Icon::Layers, "ui.dialog.layers", "Layer Properties Manager"),
-        (Icon::Blocks, "ui.dialog.blocks", "Blocks"),
-    ],
-    &[(Icon::Measure, "dist", "Measure Distance"), (Icon::List, "list", "List"), (Icon::Area, "area", "Area")],
-    &[(Icon::Help, "ui.dialog.about", "Help")],
+    &[(Icon::Measure, "dist", "量測距離"), (Icon::List, "list", "列表"), (Icon::Area, "area", "面積")],
+    &[(Icon::Help, "ui.dialog.about", "說明")],
 ];
 
 /// Title row (with the integrated macOS title bar) and the Tool Bar.
@@ -43,7 +38,7 @@ pub fn title_and_toolbar(app: &mut CadApp, ui: &mut egui::Ui) {
         if title_h > 0.0 {
             let title = match app.session.state() {
                 Ok(st) if !app.ui.start_tab => format!("CADCraft      {}{}", st.title, if st.title.contains('.') { "" } else { ".dwg" }),
-                _ => "CADCraft      Start".into(),
+                _ => "CADCraft      開始".into(),
             };
             ui.painter().text(
                 pos2(r.center().x, r.top() + title_h / 2.0 + 1.0),
@@ -102,7 +97,7 @@ pub fn file_tabs(app: &mut CadApp, ui: &mut egui::Ui) {
         let plus = Rect::from_min_size(pos2(x, r.top() + 4.0), vec2(18.0, 18.0));
         let presp = ui.interact(plus, ui.id().with("tab+"), Sense::click());
         icons::paint(ui.painter(), plus.shrink(2.0), Icon::Plus, false);
-        if presp.on_hover_text("New Drawing").clicked() {
+        if presp.on_hover_text("新圖面").clicked() {
             app.start("new");
             app.ui.start_tab = false;
         }
@@ -139,7 +134,7 @@ pub fn file_tabs(app: &mut CadApp, ui: &mut egui::Ui) {
             x += w;
             (resp.clicked(), close)
         };
-        let (c, _) = tab(ui, "Start", app.ui.start_tab || app.session.docs.is_empty(), 110.0, ui.id().with("tab_start"));
+        let (c, _) = tab(ui, "開始", app.ui.start_tab || app.session.docs.is_empty(), 110.0, ui.id().with("tab_start"));
         if c {
             app.ui.start_tab = true;
         }
@@ -178,7 +173,7 @@ pub fn status_bar(app: &mut CadApp, ui: &mut egui::Ui) {
         let r = ui.max_rect();
         let p = ui.painter().clone();
         let mut x = r.left() + 8.0;
-        for (icon, tip) in [(Icon::Plus, "New layout"), (Icon::Menu, "Layout list")] {
+        for (icon, tip) in [(Icon::Plus, "新配置"), (Icon::Menu, "配置清單")] {
             let br = Rect::from_min_size(pos2(x, r.top() + 4.0), vec2(18.0, 18.0));
             let resp = ui.interact(br, ui.id().with(("sb", tip)), Sense::click());
             icons::paint(&p, br.shrink(2.0), icon, false);
@@ -201,7 +196,9 @@ pub fn status_bar(app: &mut CadApp, ui: &mut egui::Ui) {
         }
         let mut switch = None;
         for (i, name) in tabs.iter().enumerate() {
-            let g = p.layout_no_wrap(name.clone(), crate::theme::body(), t.text);
+            // 只翻顯示文字：name 本身是 layout.set 的參數（"Model"／使用者自訂配置名），不可改。
+            let display = if name == "Model" { "模型".to_string() } else { name.clone() };
+            let g = p.layout_no_wrap(display, crate::theme::body(), t.text);
             let w = g.size().x + 26.0;
             let tr = Rect::from_min_size(pos2(x, r.top() + 1.0), vec2(w, r.height() - 2.0));
             let active = cur.as_deref().is_ok_and(|c| c == name);
@@ -220,7 +217,7 @@ pub fn status_bar(app: &mut CadApp, ui: &mut egui::Ui) {
                 let pr = Rect::from_min_size(pos2(x, r.top() + 5.0), vec2(16.0, 16.0));
                 let presp = ui.interact(pr, ui.id().with("layout_plus"), Sense::click());
                 icons::paint(&p, pr.shrink(2.0), Icon::Plus, false);
-                if presp.on_hover_text("New layout").clicked()
+                if presp.on_hover_text("新配置").clicked()
                     && let Ok(v) = app.run("layout.new", json!({}))
                     && let Some(n) = v.get("name").and_then(serde_json::Value::as_str)
                 {
@@ -236,20 +233,20 @@ pub fn status_bar(app: &mut CadApp, ui: &mut egui::Ui) {
         let s = app.session.settings.clone();
         use cadcraft_engine::snap::mode;
         let toggles: Vec<(Icon, bool, &str, &str)> = vec![
-            (Icon::Grid, s.gridmode, "grid", "Grid (F7)"),
-            (Icon::Snap, s.snapmode, "snap", "Snap Mode (F9)"),
-            (Icon::Ortho, s.orthomode, "ortho", "Ortho Mode (F8)"),
-            (Icon::Polar, s.polarmode, "polar", "Polar Tracking (F10)"),
-            (Icon::Isodraft, s.isodraft, "isodraft", "Isometric Drafting"),
-            (Icon::OTrack, s.otrack, "otrack", "Object Snap Tracking (F11)"),
-            (Icon::Osnap, s.osmode & mode::OFF == 0 && s.osmode != 0, "osnap", "Object Snap (F3)"),
-            (Icon::Lineweight, s.lwdisplay, "lwdisplay", "Show/Hide Lineweight"),
-            (Icon::Transparency, s.transparency_display, "transparencydisplay", "Show/Hide Transparency"),
-            (Icon::DynInput, s.dynmode, "dynmode", "Dynamic Input (F12)"),
-            (Icon::QuickProps, s.qpmode, "qpmode", "Quick Properties"),
-            (Icon::Annotation, s.annoallvisible, "ui.noop", "Annotation Visibility"),
-            (Icon::Workspace, false, "ui.noop", "Workspace Switching"),
-            (Icon::Gear, false, "ui.dialog.dsettings", "Drafting Settings"),
+            (Icon::Grid, s.gridmode, "grid", "格點 (F7)"),
+            (Icon::Snap, s.snapmode, "snap", "鎖點模式 (F9)"),
+            (Icon::Ortho, s.orthomode, "ortho", "正交模式 (F8)"),
+            (Icon::Polar, s.polarmode, "polar", "極座標追蹤 (F10)"),
+            (Icon::Isodraft, s.isodraft, "isodraft", "等角圖"),
+            (Icon::OTrack, s.otrack, "otrack", "物件鎖點追蹤 (F11)"),
+            (Icon::Osnap, s.osmode & mode::OFF == 0 && s.osmode != 0, "osnap", "物件鎖點 (F3)"),
+            (Icon::Lineweight, s.lwdisplay, "lwdisplay", "顯示/隱藏線寬"),
+            (Icon::Transparency, s.transparency_display, "transparencydisplay", "顯示/隱藏透明度"),
+            (Icon::DynInput, s.dynmode, "dynmode", "動態輸入 (F12)"),
+            (Icon::QuickProps, s.qpmode, "qpmode", "快速性質"),
+            (Icon::Annotation, s.annoallvisible, "ui.noop", "標註可見性"),
+            (Icon::Workspace, false, "ui.noop", "工作區切換"),
+            (Icon::Gear, false, "ui.dialog.dsettings", "繪圖設定"),
         ];
         let size = 20.0;
         let mut rx = r.right() - 8.0 - toggles.len() as f32 * (size + 4.0);
@@ -268,12 +265,12 @@ pub fn status_bar(app: &mut CadApp, ui: &mut egui::Ui) {
         let mut coord_right = rx - 8.0;
         if matches!(app.session.layout_space(), cadcraft_doc::Space::Paper(_)) {
             let model = app.session.state().is_ok_and(|st| st.mspace.is_some());
-            let label = if model { "MODEL" } else { "PAPER" };
+            let label = if model { "模型" } else { "圖紙" };
             let br = Rect::from_min_max(pos2(rx - 60.0, r.center().y - 9.0), pos2(rx - 6.0, r.center().y + 9.0));
             let resp = ui.interact(br, ui.id().with("mspace_toggle"), Sense::click());
             p.rect_filled(br, 3.0, if resp.hovered() { t.control_hover } else { t.toggle_on.gamma_multiply(0.25) });
             p.text(br.center(), egui::Align2::CENTER_CENTER, label, crate::theme::small(), t.text);
-            if resp.on_hover_text("Switch between model space in a viewport and paper space").clicked() {
+            if resp.on_hover_text("在視埠內的模型空間與圖紙空間之間切換").clicked() {
                 let _ = app.run(if model { "pspace" } else { "mspace" }, json!({}));
                 app.canvas.list = None;
             }
@@ -326,13 +323,13 @@ pub fn start_page(app: &mut CadApp, ui: &mut egui::Ui) {
     p.text(
         pos2(left.left() + 34.0, left.top() + 98.0),
         egui::Align2::LEFT_CENTER,
-        format!("Version {}", env!("CARGO_PKG_VERSION")),
+        format!("版本 {}", env!("CARGO_PKG_VERSION")),
         crate::theme::small(),
         t.text_faint,
     );
     let mut y = left.top() + 140.0;
     let mut action = None;
-    for (label, cmd) in [("Open...", "open"), ("New", "new"), ("New (metric)", "new.metric"), ("Open sample drawing", "sample")] {
+    for (label, cmd) in [("開啟…", "open"), ("新增", "new"), ("新增（公制）", "new.metric"), ("開啟範例圖面", "sample")] {
         let br = Rect::from_min_size(pos2(left.left() + 34.0, y), vec2(190.0, 34.0));
         let resp = ui.interact(br, ui.id().with(("start", cmd)), Sense::click());
         p.rect_stroke(br, 2.0, Stroke::new(1.0, if resp.hovered() { t.text } else { t.text_dim }), egui::StrokeKind::Inside);
@@ -343,18 +340,12 @@ pub fn start_page(app: &mut CadApp, ui: &mut egui::Ui) {
         y += 44.0;
     }
     let main = Rect::from_min_max(pos2(left.right() + 36.0, r.top() + 40.0), r.max);
-    p.text(main.min, egui::Align2::LEFT_TOP, "Recent", egui::FontId::proportional(22.0), t.text);
-    p.text(
-        pos2(main.center().x, main.center().y),
-        egui::Align2::CENTER_CENTER,
-        "There is nothing here yet.",
-        egui::FontId::proportional(18.0),
-        t.text,
-    );
+    p.text(main.min, egui::Align2::LEFT_TOP, "最近開啟", egui::FontId::proportional(22.0), t.text);
+    p.text(pos2(main.center().x, main.center().y), egui::Align2::CENTER_CENTER, "這裡目前還沒有任何圖面。", egui::FontId::proportional(18.0), t.text);
     p.text(
         pos2(main.center().x, main.center().y + 26.0),
         egui::Align2::CENTER_CENTER,
-        "To get started, create or open a drawing.",
+        "建立或開啟一個圖面即可開始。",
         crate::theme::body(),
         t.text_dim,
     );

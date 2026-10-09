@@ -768,7 +768,7 @@ pub fn show(app: &mut CadApp, ui: &mut egui::Ui) {
         let far = base + Vec2::from_angle(a) * (view.height * 4.0);
         let pts = [xf.to_screen(base), xf.to_screen(far)];
         painter.extend(Shape::dashed_line(&pts, Stroke::new(1.0, Color32::from_rgb(0x4c, 0xd1, 0x37)), 3.0, 3.0));
-        let tip = format!("Polar: {} < {}°", cadcraft_engine::units::format_distance(base.dist(c), 2, 4), (a.to_degrees().round() as i64));
+        let tip = format!("極座標：{} < {}°", cadcraft_engine::units::format_distance(base.dist(c), 2, 4), (a.to_degrees().round() as i64));
         tooltip(&painter, xf.to_screen(c) + vec2(16.0, 18.0), &tip);
     }
     if let (Some(hit), Some(_)) = (app.canvas.snap, app.canvas.cursor) {
@@ -868,7 +868,7 @@ fn draw_ucs_icon(p: &egui::Painter, rect: Rect) {
 fn viewport_label(p: &egui::Painter, rect: Rect) {
     let t = Tokens::get();
     let at = pos2(rect.left() + 10.0, rect.top() + 8.0);
-    p.text(at, egui::Align2::LEFT_TOP, "+  |  Top  |  2D Wireframe", crate::theme::small(), t.text_dim);
+    p.text(at, egui::Align2::LEFT_TOP, "+  |  上視圖  |  2D 線架構", crate::theme::small(), t.text_dim);
 }
 
 fn draw_viewcube(app: &mut CadApp, ui: &mut egui::Ui, rect: Rect) {
@@ -880,15 +880,15 @@ fn draw_viewcube(app: &mut CadApp, ui: &mut egui::Ui, rect: Rect) {
     p.circle_stroke(c, ring + 4.5, Stroke::new(1.0, Color32::from_rgb(0x5c, 0x65, 0x72)));
     let f = egui::FontId::proportional(17.0);
     let lc = Color32::from_rgb(0xc8, 0xcc, 0xd2);
-    p.text(c + vec2(0.0, -ring - 1.0), egui::Align2::CENTER_CENTER, "N", f.clone(), lc);
-    p.text(c + vec2(0.0, ring + 1.0), egui::Align2::CENTER_CENTER, "S", f.clone(), lc);
-    p.text(c + vec2(ring + 1.0, 0.0), egui::Align2::CENTER_CENTER, "E", f.clone(), lc);
-    p.text(c + vec2(-ring - 1.0, 0.0), egui::Align2::CENTER_CENTER, "W", f, lc);
+    p.text(c + vec2(0.0, -ring - 1.0), egui::Align2::CENTER_CENTER, "北", f.clone(), lc);
+    p.text(c + vec2(0.0, ring + 1.0), egui::Align2::CENTER_CENTER, "南", f.clone(), lc);
+    p.text(c + vec2(ring + 1.0, 0.0), egui::Align2::CENTER_CENTER, "東", f.clone(), lc);
+    p.text(c + vec2(-ring - 1.0, 0.0), egui::Align2::CENTER_CENTER, "西", f, lc);
     let face = Rect::from_center_size(c, vec2(44.0, 44.0));
     let resp = ui.interact(face, ui.id().with("viewcube"), Sense::click());
     p.rect_filled(face, 2.0, if resp.hovered() { Color32::from_rgb(0xb8, 0xbc, 0xc2) } else { Color32::from_rgb(0x9a, 0x9e, 0xa4) });
     p.rect_stroke(face, 2.0, Stroke::new(1.0, Color32::from_rgb(0x6c, 0x70, 0x76)), egui::StrokeKind::Inside);
-    p.text(c, egui::Align2::CENTER_CENTER, "TOP", egui::FontId::proportional(13.0), Color32::from_rgb(0x50, 0x54, 0x5a));
+    p.text(c, egui::Align2::CENTER_CENTER, "上視", egui::FontId::proportional(13.0), Color32::from_rgb(0x50, 0x54, 0x5a));
     if resp.clicked() {
         let _ = app.session.zoom_extents();
     }

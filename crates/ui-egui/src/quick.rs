@@ -40,11 +40,39 @@ impl Default for QsState {
     }
 }
 
-const OPERATORS: &[(&str, &str)] =
-    &[("=", "= Equals"), ("!=", "<> Not Equal"), (">", "> Greater than"), ("<", "< Less than"), ("*", "* Wildcard Match")];
+const OPERATORS: &[(&str, &str)] = &[("=", "= 等於"), ("!=", "<> 不等於"), (">", "> 大於"), ("<", "< 小於"), ("*", "* 萬用字元比對")];
 
 /// Friendly label for a property key (`centerX` → `Center X`).
 fn pretty(k: &str) -> String {
+    // Display names for known property keys (the keys themselves stay English).
+    let zh = match k {
+        "type" => Some("類型"),
+        "layer" => Some("圖層"),
+        "color" => Some("顏色"),
+        "linetype" => Some("線型"),
+        "lineweight" => Some("線寬"),
+        "ltscale" => Some("線型比例"),
+        "handle" => Some("識別碼"),
+        "visible" => Some("可見"),
+        "radius" => Some("半徑"),
+        "diameter" => Some("直徑"),
+        "length" => Some("長度"),
+        "area" => Some("面積"),
+        "centerX" => Some("中心 X"),
+        "centerY" => Some("中心 Y"),
+        "center" => Some("中心"),
+        "angle" => Some("角度"),
+        "startAngle" => Some("起始角度"),
+        "endAngle" => Some("結束角度"),
+        "height" => Some("高度"),
+        "rotation" => Some("旋轉角度"),
+        "width" => Some("寬度"),
+        "text" => Some("文字"),
+        _ => None,
+    };
+    if let Some(zh) = zh {
+        return zh.to_string();
+    }
     let mut out = String::new();
     for (i, c) in k.chars().enumerate() {
         if i == 0 {
@@ -76,20 +104,20 @@ pub fn qselect_dialog(app: &mut CadApp, ctx: &egui::Context, open: &mut bool) {
     let has_sel = !app.session.selection().is_empty();
     let mut run: Option<Value> = None;
     let mut close = false;
-    egui::Window::new("Quick Select").open(open).collapsible(false).resizable(false).default_width(380.0).show(ctx, |ui| {
+    egui::Window::new("快速選取").open(open).collapsible(false).resizable(false).default_width(380.0).show(ctx, |ui| {
         egui::Grid::new("qs_grid").num_columns(2).spacing(vec2(10.0, 6.0)).show(ui, |ui| {
-            ui.label("Apply to:");
+            ui.label("套用至：");
             egui::ComboBox::from_id_salt("qs_apply")
                 .width(220.0)
-                .selected_text(if st.apply_selection { "Current selection" } else { "Entire drawing" })
+                .selected_text(if st.apply_selection { "目前選取範圍" } else { "整份圖面" })
                 .show_ui(ui, |ui| {
-                    ui.selectable_value(&mut st.apply_selection, false, "Entire drawing");
+                    ui.selectable_value(&mut st.apply_selection, false, "整份圖面");
                     ui.add_enabled_ui(has_sel, |ui| {
-                        ui.selectable_value(&mut st.apply_selection, true, "Current selection");
+                        ui.selectable_value(&mut st.apply_selection, true, "目前選取範圍");
                     });
                 });
             ui.end_row();
-            ui.label("Object type:");
+            ui.label("物件類型：");
             let types: Vec<(String, u64)> = st
                 .info
                 .get("types")
@@ -100,14 +128,17 @@ pub fn qselect_dialog(app: &mut CadApp, ctx: &egui::Context, open: &mut bool) {
                         .collect()
                 })
                 .unwrap_or_default();
-            egui::ComboBox::from_id_salt("qs_type").width(220.0).selected_text(st.ty.clone()).show_ui(ui, |ui| {
-                ui.selectable_value(&mut st.ty, "Multiple".to_string(), "Multiple");
-                for (n, c) in &types {
-                    ui.selectable_value(&mut st.ty, n.clone(), format!("{n} ({c})"));
-                }
-            });
+            egui::ComboBox::from_id_salt("qs_type")
+                .width(220.0)
+                .selected_text(if st.ty == "Multiple" { "多種類型".to_string() } else { st.ty.clone() })
+                .show_ui(ui, |ui| {
+                    ui.selectable_value(&mut st.ty, "Multiple".to_string(), "多種類型");
+                    for (n, c) in &types {
+                        ui.selectable_value(&mut st.ty, n.clone(), format!("{n} ({c})"));
+                    }
+                });
             ui.end_row();
-            ui.label("Properties:");
+            ui.label("性質：");
             let props: Vec<String> = st
                 .info
                 .get("properties")
@@ -127,15 +158,15 @@ pub fn qselect_dialog(app: &mut CadApp, ctx: &egui::Context, open: &mut bool) {
                 });
             });
             ui.end_row();
-            ui.label("Operator:");
-            let op_label = OPERATORS.iter().find(|o| o.0 == st.operator).map(|o| o.1).unwrap_or("= Equals");
+            ui.label("運算子：");
+            let op_label = OPERATORS.iter().find(|o| o.0 == st.operator).map(|o| o.1).unwrap_or("= 等於");
             egui::ComboBox::from_id_salt("qs_op").width(220.0).selected_text(op_label).show_ui(ui, |ui| {
                 for (o, l) in OPERATORS {
                     ui.selectable_value(&mut st.operator, o.to_string(), *l);
                 }
             });
             ui.end_row();
-            ui.label("Value:");
+            ui.label("值：");
             let choices: Vec<String> = match st.property.as_str() {
                 "color" => {
                     ["ByLayer", "ByBlock", "Red", "Yellow", "Green", "Cyan", "Blue", "Magenta", "White"].iter().map(|s| s.to_string()).collect()
@@ -163,14 +194,14 @@ pub fn qselect_dialog(app: &mut CadApp, ctx: &egui::Context, open: &mut bool) {
             ui.end_row();
         });
         ui.separator();
-        ui.label("How to apply:");
-        ui.radio_value(&mut st.exclude, false, "Include in new selection set");
-        ui.radio_value(&mut st.exclude, true, "Exclude from new selection set");
-        ui.checkbox(&mut st.append, "Append to current selection set");
+        ui.label("套用方式：");
+        ui.radio_value(&mut st.exclude, false, "包含在新的選取集");
+        ui.radio_value(&mut st.exclude, true, "從新的選取集中排除");
+        ui.checkbox(&mut st.append, "附加到目前選取集");
         ui.separator();
         ui.horizontal(|ui| {
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                if ui.button("  OK  ").clicked() {
+                if ui.button("  確定  ").clicked() {
                     let mode = if st.exclude {
                         "exclude"
                     } else if st.append {
@@ -196,7 +227,7 @@ pub fn qselect_dialog(app: &mut CadApp, ctx: &egui::Context, open: &mut bool) {
                     run = Some(p);
                     close = true;
                 }
-                if ui.button("Cancel").clicked() {
+                if ui.button("取消").clicked() {
                     close = true;
                 }
             });
@@ -273,11 +304,11 @@ pub fn quick_properties(app: &mut CadApp, ctx: &egui::Context) {
     } else if same_type {
         format!("{ty} ({})", ents.len())
     } else {
-        format!("All ({})", ents.len())
+        format!("全部 ({})", ents.len())
     };
     let same = |f: &dyn Fn(&cadcraft_doc::Entity) -> String| -> String {
         let v0 = ents.first().map(|e| f(e)).unwrap_or_default();
-        if ents.iter().all(|e| f(e) == v0) { v0 } else { "*VARIES*".into() }
+        if ents.iter().all(|e| f(e) == v0) { v0 } else { "*不一致*".into() }
     };
     let color = ents.first().map(|e| e.common.color).filter(|c| ents.iter().all(|e| e.common.color == *c));
     let layer = same(&|e| e.common.layer.clone());
@@ -297,13 +328,13 @@ pub fn quick_properties(app: &mut CadApp, ctx: &egui::Context) {
         .default_width(250.0)
         .show(ctx, |ui| {
             egui::Grid::new("qp_grid").num_columns(2).spacing(vec2(10.0, 4.0)).min_col_width(80.0).show(ui, |ui| {
-                ui.label(RichText::new("Color").color(Tokens::get().text_dim));
+                ui.label(RichText::new("顏色").color(Tokens::get().text_dim));
                 let cur = color.unwrap_or(cadcraft_color::Color::ByLayer);
                 if let Some(c) = crate::layers::color_button(ui, egui::Id::new(("qp_color", &ids)), cur, true, 150.0) {
                     set = Some(("color".into(), json!(c.name())));
                 }
                 ui.end_row();
-                ui.label(RichText::new("Layer").color(Tokens::get().text_dim));
+                ui.label(RichText::new("圖層").color(Tokens::get().text_dim));
                 egui::ComboBox::from_id_salt("qp_layer").width(150.0).selected_text(layer.clone()).show_ui(ui, |ui| {
                     for l in &layers {
                         if ui.selectable_label(*l == layer, l).clicked() {
@@ -312,7 +343,7 @@ pub fn quick_properties(app: &mut CadApp, ctx: &egui::Context) {
                     }
                 });
                 ui.end_row();
-                ui.label(RichText::new("Linetype").color(Tokens::get().text_dim));
+                ui.label(RichText::new("線型").color(Tokens::get().text_dim));
                 egui::ComboBox::from_id_salt("qp_lt").width(150.0).selected_text(linetype.clone()).show_ui(ui, |ui| {
                     for l in std::iter::once("ByLayer".to_string())
                         .chain(std::iter::once("ByBlock".to_string()))
@@ -328,15 +359,15 @@ pub fn quick_properties(app: &mut CadApp, ctx: &egui::Context) {
                 match &kind {
                     Some(EntityKind::Line(l)) => {
                         let dl = l.b.xy() - l.a.xy();
-                        num_row(ui, "Length", id("len"), dl.len(), &mut set, "length");
-                        num_row(ui, "Angle", id("ang"), dl.angle().to_degrees(), &mut set, "angle");
+                        num_row(ui, "長度", id("len"), dl.len(), &mut set, "length");
+                        num_row(ui, "角度", id("ang"), dl.angle().to_degrees(), &mut set, "angle");
                     }
                     Some(EntityKind::Circle(c)) => {
-                        num_row(ui, "Center X", id("cx"), c.center.x, &mut set, "cx");
-                        num_row(ui, "Center Y", id("cy"), c.center.y, &mut set, "cy");
-                        num_row(ui, "Radius", id("r"), c.radius, &mut set, "radius");
-                        num_row(ui, "Diameter", id("d"), c.radius * 2.0, &mut set, "diameter");
-                        ro_row(ui, "Area", format!("{:.4}", c.radius * c.radius * std::f64::consts::PI));
+                        num_row(ui, "中心 X", id("cx"), c.center.x, &mut set, "cx");
+                        num_row(ui, "中心 Y", id("cy"), c.center.y, &mut set, "cy");
+                        num_row(ui, "半徑", id("r"), c.radius, &mut set, "radius");
+                        num_row(ui, "直徑", id("d"), c.radius * 2.0, &mut set, "diameter");
+                        ro_row(ui, "面積", format!("{:.4}", c.radius * c.radius * std::f64::consts::PI));
                         if let Some((k, v)) = &set {
                             if k == "cx" {
                                 set = Some(("center".into(), json!([v, c.center.y])));
@@ -346,42 +377,42 @@ pub fn quick_properties(app: &mut CadApp, ctx: &egui::Context) {
                         }
                     }
                     Some(EntityKind::Arc(a)) => {
-                        num_row(ui, "Radius", id("r"), a.radius, &mut set, "radius");
-                        num_row(ui, "Start angle", id("sa"), a.start.to_degrees(), &mut set, "startAngle");
-                        num_row(ui, "End angle", id("ea"), a.end.to_degrees(), &mut set, "endAngle");
+                        num_row(ui, "半徑", id("r"), a.radius, &mut set, "radius");
+                        num_row(ui, "起始角度", id("sa"), a.start.to_degrees(), &mut set, "startAngle");
+                        num_row(ui, "結束角度", id("ea"), a.end.to_degrees(), &mut set, "endAngle");
                     }
                     Some(EntityKind::LwPolyline(p)) => {
                         let g = cadcraft_geom::Polyline { vertices: p.vertices.clone(), closed: p.closed };
-                        ro_row(ui, "Length", format!("{:.4}", g.len()));
+                        ro_row(ui, "長度", format!("{:.4}", g.len()));
                         if p.closed {
-                            ro_row(ui, "Area", format!("{:.4}", g.area().abs()));
+                            ro_row(ui, "面積", format!("{:.4}", g.area().abs()));
                         }
-                        num_row(ui, "Global width", id("w"), p.const_width, &mut set, "width");
+                        num_row(ui, "整體寬度", id("w"), p.const_width, &mut set, "width");
                     }
                     Some(EntityKind::Text(tx)) => {
-                        ui.label(RichText::new("Contents").color(Tokens::get().text_dim));
+                        ui.label(RichText::new("內容").color(Tokens::get().text_dim));
                         if let Some(v) = crate::parametric::expr_field(ui, id("txt"), &tx.value) {
                             set = Some(("text".into(), json!(v)));
                         }
                         ui.end_row();
-                        num_row(ui, "Height", id("h"), tx.height, &mut set, "height");
-                        num_row(ui, "Rotation", id("rot"), tx.rotation.to_degrees(), &mut set, "rotation");
+                        num_row(ui, "高度", id("h"), tx.height, &mut set, "height");
+                        num_row(ui, "旋轉角度", id("rot"), tx.rotation.to_degrees(), &mut set, "rotation");
                     }
                     Some(EntityKind::MText(tx)) => {
-                        ui.label(RichText::new("Contents").color(Tokens::get().text_dim));
+                        ui.label(RichText::new("內容").color(Tokens::get().text_dim));
                         if let Some(v) = crate::parametric::expr_field(ui, id("mtxt"), &tx.contents) {
                             set = Some(("text".into(), json!(v)));
                         }
                         ui.end_row();
-                        num_row(ui, "Text height", id("h"), tx.height, &mut set, "height");
+                        num_row(ui, "文字高度", id("h"), tx.height, &mut set, "height");
                     }
                     Some(EntityKind::Insert(i)) => {
-                        ro_row(ui, "Name", i.block.clone());
-                        num_row(ui, "Rotation", id("rot"), i.rotation.to_degrees(), &mut set, "rotation");
-                        num_row(ui, "Scale", id("sc"), i.scale.x, &mut set, "scale");
+                        ro_row(ui, "名稱", i.block.clone());
+                        num_row(ui, "旋轉角度", id("rot"), i.rotation.to_degrees(), &mut set, "rotation");
+                        num_row(ui, "比例", id("sc"), i.scale.x, &mut set, "scale");
                     }
                     Some(EntityKind::Dimension(dm)) => {
-                        ui.label(RichText::new("Text override").color(Tokens::get().text_dim));
+                        ui.label(RichText::new("文字覆寫").color(Tokens::get().text_dim));
                         if let Some(v) = crate::parametric::expr_field(ui, id("dt"), &dm.text) {
                             set = Some(("textOverride".into(), json!(v)));
                         }
@@ -392,7 +423,7 @@ pub fn quick_properties(app: &mut CadApp, ctx: &egui::Context) {
             });
             ui.horizontal(|ui| {
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    if ui.small_button("Close").on_hover_text("Turn Quick Properties off (QPMODE)").clicked() {
+                    if ui.small_button("關閉").on_hover_text("關閉快速性質（QPMODE）").clicked() {
                         close = true;
                     }
                 });
@@ -411,7 +442,7 @@ pub fn quick_properties(app: &mut CadApp, ctx: &egui::Context) {
 mod tests {
     #[test]
     fn pretty_names() {
-        assert_eq!(super::pretty("centerX"), "Center X");
-        assert_eq!(super::pretty("layer"), "Layer");
+        assert_eq!(super::pretty("centerX"), "中心 X");
+        assert_eq!(super::pretty("layer"), "圖層");
     }
 }
