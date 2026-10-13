@@ -151,3 +151,13 @@ The implementation follows the display-time catalog pattern used by
 
 Translations are original work under `MIT OR Apache-2.0`, written from the meaning of
 CADCraft's English strings. Do not copy proprietary localization resources.
+
+## Traditional Chinese (this fork)
+
+This fork adds a **繁體中文（台灣）** catalog (`zh-TW`, `crates/ui-egui/src/i18n/zh_tw.tsv`),
+written in Taiwan usage and CAD terminology. Select it under **Edit → Interface Language**,
+or with `{"interfaceLanguage":"zh-TW"}`; system locales `zh-TW`, `zh-HK`, `zh-MO` and
+`zh-Hant*` select it automatically under **Auto**, while other `zh-*` locales keep the
+Simplified catalog. Unlike the upstream Chinese catalog, it does not depend on an installed
+CJK font: this fork bundles the jf open huninn font (SIL OFL 1.1, see `ATTRIBUTION.md`) and
+loads it whenever a Chinese interface is active, on the desktop and on the web.

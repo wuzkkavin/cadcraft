@@ -302,6 +302,15 @@ pub fn mono() -> FontId {
     FontId::new(12.0, FontFamily::Monospace)
 }
 
+/// The CJK font bundled by this fork — jf open huninn 2.1 (justfont, SIL OFL 1.1;
+/// `assets/OFL.txt`) — so the Chinese interfaces render identically on every machine,
+/// including the web build, with no installed-font requirement. The upstream project
+/// keeps fonts out of the repo (see `ATTRIBUTION.md`); bundling this one font is a
+/// deliberate exception requested by this fork's owner.
+pub fn bundled_cjk_font() -> &'static [u8] {
+    include_bytes!("../assets/jf-openhuninn-2.1.ttf")
+}
+
 /// Load a system UI font at run time when one is installed (not bundled), else keep egui's;
 /// then CJK fonts after the Latin ones, so Latin text keeps its look, in every interface
 /// language: file, layout and layer names can be Japanese or Chinese whatever the interface
@@ -359,6 +368,12 @@ pub fn install_fonts(ctx: &egui::Context, language: &str) {
         {
             added.push(("system-arabic".into(), std::sync::Arc::new(egui::FontData::from_owned(bytes))));
         }
+    }
+    // This fork: for a Chinese interface the bundled jf open huninn font goes first among
+    // the added CJK fonts, so Traditional glyph forms win over any installed CJK font and
+    // the web build (which has no system fonts) renders the same as the desktop.
+    if language.starts_with("zh") {
+        added.insert(0, ("bundled-cjk".into(), std::sync::Arc::new(egui::FontData::from_static(bundled_cjk_font()))));
     }
     let embedded: Vec<_> = cadcraft_fonts::CRAFT_FONTS.iter().collect();
     added.extend(
@@ -635,13 +650,14 @@ pub fn shows_hangul(language: &str) -> bool {
 }
 
 /// Whether the interface can show `language` without missing-glyph boxes: Chinese needs a font
-/// with its glyphs (installed, or the CJK face this build embedded from craft-fonts), Korean a
-/// font with Hangul, العربية an installed Arabic font or the embedded Arabic face.
+/// with its glyphs (installed, the CJK face this build embedded from craft-fonts, or the one
+/// bundled by this fork — always present), Korean a font with Hangul, العربية an installed
+/// Arabic font or the embedded Arabic face.
 pub fn can_show(language: &str) -> bool {
     match language {
         "ko" => shows_hangul("ko"),
         "ar" => arabic_font().is_some() || embedded_script("Arab"),
-        l if l.starts_with("zh") => cjk_font().is_some() || embedded_script("Hans") || embedded_script("Hant"),
+        l if l.starts_with("zh") => cjk_font().is_some() || embedded_script("Hans") || embedded_script("Hant") || !bundled_cjk_font().is_empty(),
         _ => true,
     }
 }
