@@ -31,10 +31,12 @@ pub enum Preference {
     French,
     #[serde(rename = "zh")]
     Chinese,
+    #[serde(rename = "zh-TW")]
+    TraditionalChinese,
 }
 
 impl Preference {
-    pub const ALL: [Self; 10] = [
+    pub const ALL: [Self; 11] = [
         Self::Auto,
         Self::English,
         Self::Ukrainian,
@@ -45,6 +47,7 @@ impl Preference {
         Self::Russian,
         Self::French,
         Self::Chinese,
+        Self::TraditionalChinese,
     ];
 
     /// The codes a preference can be given as, for messages ("auto, en or uk").
@@ -68,6 +71,7 @@ impl Preference {
             Self::Russian => "ru",
             Self::French => "fr",
             Self::Chinese => "zh",
+            Self::TraditionalChinese => "zh-TW",
         }
     }
 
@@ -83,6 +87,7 @@ impl Preference {
             Self::Russian => "Русский",
             Self::French => "Français",
             Self::Chinese => "简体中文",
+            Self::TraditionalChinese => "繁體中文（台灣）",
         }
     }
 
@@ -106,6 +111,7 @@ impl Preference {
             Self::Russian => "ru",
             Self::French => "fr",
             Self::Chinese => "zh",
+            Self::TraditionalChinese => "zh-TW",
             Self::Auto => locales.iter().find_map(|s| locale_language(s)).unwrap_or("en"),
         }
     }
@@ -122,7 +128,7 @@ pub struct Language {
     catalog: OnceLock<Catalog<'static>>,
 }
 
-pub static LANGUAGES: [Language; 9] = [
+pub static LANGUAGES: [Language; 10] = [
     Language { code: "en", name: "English", source: "", plural: plural_en, plural_forms: 2, catalog: OnceLock::new() },
     Language {
         code: "uk", name: "Українська", source: include_str!("uk.tsv"), plural: plural_uk, plural_forms: 3, catalog: OnceLock::new()
@@ -147,12 +153,36 @@ pub static LANGUAGES: [Language; 9] = [
     // Chinese has no grammatical plural: both `@plural` forms read the same. Its glyphs come from
     // an installed CJK font (`theme::cjk_font`); without one the interface stays English.
     Language { code: "zh", name: "简体中文", source: include_str!("zh.tsv"), plural: plural_en, plural_forms: 2, catalog: OnceLock::new() },
+    // Traditional Chinese (Taiwan): no grammatical plural either, so both `@plural` forms
+    // read the same, as with Simplified Chinese.
+    Language {
+        code: "zh-TW",
+        name: "繁體中文（台灣）",
+        source: include_str!("zh_tw.tsv"),
+        plural: plural_en,
+        plural_forms: 2,
+        catalog: OnceLock::new(),
+    },
 ];
 
 /// BCP 47 and POSIX locale tags, including `uk-UA`, `uk_UA.UTF-8` and `pt_BR.UTF-8`.
-/// A catalog is chosen by the tag's primary language, so any `pt-*` tag selects `pt-BR`.
+/// An exact catalog code wins first (so `zh-TW` and `pt-BR` select themselves); otherwise
+/// a catalog is chosen by the tag's primary language, so any `pt-*` tag selects `pt-BR`.
+/// Chinese tags carrying the `Hant` script or a Taiwan/Hong Kong/Macau region select the
+/// Traditional Chinese catalog.
 pub fn locale_language(tag: &str) -> Option<&'static str> {
-    let primary = tag.trim().split(['-', '_', '.', '@']).next()?;
+    let normalized = tag.trim().replace('_', "-");
+    let bcp = normalized.split(['.', '@']).next().unwrap_or_default();
+    if let Some(language) = LANGUAGES.iter().find(|l| l.code.eq_ignore_ascii_case(bcp)) {
+        return Some(language.code);
+    }
+    let mut subtags = bcp.split('-');
+    let primary = subtags.next()?;
+    if primary.eq_ignore_ascii_case("zh")
+        && subtags.any(|s| s.eq_ignore_ascii_case("Hant") || ["TW", "HK", "MO"].iter().any(|r| s.eq_ignore_ascii_case(r)))
+    {
+        return Some("zh-TW");
+    }
     LANGUAGES.iter().find(|l| l.code.split('-').next().is_some_and(|p| p.eq_ignore_ascii_case(primary))).map(|l| l.code)
 }
 

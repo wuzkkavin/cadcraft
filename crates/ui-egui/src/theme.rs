@@ -301,7 +301,18 @@ pub fn mono() -> FontId {
     FontId::new(12.0, FontFamily::Monospace)
 }
 
+/// The CJK font bundled by this fork — jf open huninn 2.1 (justfont, SIL OFL 1.1;
+/// `assets/OFL.txt`) — so the Chinese interfaces render identically on every machine,
+/// including the web build, with no installed-font requirement. The upstream project
+/// keeps fonts out of the repo (see `ATTRIBUTION.md`); bundling this one font is a
+/// deliberate exception requested by this fork's owner.
+pub fn bundled_cjk_font() -> &'static [u8] {
+    include_bytes!("../assets/jf-openhuninn-2.1.ttf")
+}
+
 /// Load a system UI font at run time when one is installed (not bundled), else keep egui's.
+/// When a Chinese interface is active, the bundled CJK font is added after the Latin
+/// fonts, so Latin text keeps its look.
 pub fn install_fonts(ctx: &egui::Context, cjk: bool) {
     #[cfg(not(target_arch = "wasm32"))]
     {
@@ -327,36 +338,34 @@ pub fn install_fonts(ctx: &egui::Context, cjk: bool) {
                 break;
             }
         }
-        // Chinese: an installed CJK font after the Latin ones, so Latin text keeps its look.
-        if let Some(bytes) = cjk.then(cjk_font).flatten().and_then(|p| read_capped(p, MAX_UI_FONT_BYTES)) {
-            fonts.font_data.insert("system-cjk".into(), std::sync::Arc::new(egui::FontData::from_owned(bytes)));
+        if cjk {
+            fonts.font_data.insert("bundled-cjk".into(), std::sync::Arc::new(egui::FontData::from_static(bundled_cjk_font())));
             for family in [FontFamily::Proportional, FontFamily::Monospace] {
                 if let Some(f) = fonts.families.get_mut(&family) {
-                    f.push("system-cjk".into());
+                    f.push("bundled-cjk".into());
                 }
             }
         }
         ctx.set_fonts(fonts);
     }
     #[cfg(target_arch = "wasm32")]
-    let _ = (ctx, cjk);
-}
-
-/// Largest interface font file read (CJK collections are 15–60 MB).
-#[cfg(not(target_arch = "wasm32"))]
-const MAX_UI_FONT_BYTES: u64 = 96 * 1024 * 1024;
-
-#[cfg(not(target_arch = "wasm32"))]
-fn read_capped(path: &std::path::Path, max: u64) -> Option<Vec<u8>> {
-    let len = std::fs::metadata(path).ok()?.len();
-    if len == 0 || len > max {
-        return None;
+    {
+        if cjk {
+            let mut fonts = egui::FontDefinitions::default();
+            fonts.font_data.insert("bundled-cjk".into(), std::sync::Arc::new(egui::FontData::from_static(bundled_cjk_font())));
+            for family in [FontFamily::Proportional, FontFamily::Monospace] {
+                if let Some(f) = fonts.families.get_mut(&family) {
+                    f.push("bundled-cjk".into());
+                }
+            }
+            ctx.set_fonts(fonts);
+        }
     }
-    std::fs::read(path).ok()
 }
 
-/// An installed font with Chinese characters, for the Chinese interface; fonts are never bundled
-/// (only looked for where the OS or common packages put them). Checked once.
+/// An installed font with Chinese characters, for the Chinese interface. In this fork
+/// it is only a supplement: the bundled font (see `bundled_cjk_font`) already covers
+/// Chinese, so an installed font is never required. Checked once.
 pub fn cjk_font() -> Option<&'static std::path::Path> {
     #[cfg(not(target_arch = "wasm32"))]
     {
@@ -388,9 +397,10 @@ pub fn cjk_font() -> Option<&'static std::path::Path> {
     None
 }
 
-/// Whether the interface can show `language`: Chinese needs an installed CJK font.
+/// Whether the interface can show `language`: Chinese needs a CJK font — an installed
+/// one, or the one bundled by this fork (always present).
 pub fn can_show(language: &str) -> bool {
-    !language.starts_with("zh") || cjk_font().is_some()
+    !language.starts_with("zh") || cjk_font().is_some() || !bundled_cjk_font().is_empty()
 }
 
 /// egui's visuals for `theme`, from its tokens.

@@ -39,7 +39,7 @@ fn catalog_is_valid_and_preserves_placeholders_and_ellipses() {
 /// to English for what they don't cover yet; their gaps are reported, not enforced, so adding a
 /// command doesn't require a row in every language.
 const REQUIRED: &[&str] = &["uk"];
-const REPORTED: &[&str] = &["pt-BR", "de", "es", "cs", "ru", "fr", "zh"];
+const REPORTED: &[&str] = &["pt-BR", "de", "es", "cs", "ru", "fr", "zh", "zh-TW"];
 
 fn check(language: &str, what: &str, missing: Vec<String>) {
     if REQUIRED.contains(&language) {
@@ -525,19 +525,24 @@ fn russian_and_french_plurals() {
     });
 }
 
-/// Chinese shows only with an installed CJK font (none is bundled); without one the interface
-/// stays English instead of drawing boxes, and choosing it says why.
+/// Chinese shows with an installed CJK font or the CJK font bundled by this fork;
+/// the bundled font means the interface never stays English for lack of glyphs.
+/// Traditional-Chinese tags select the Traditional catalog, other Chinese tags the
+/// Simplified one.
 #[test]
-fn chinese_needs_an_installed_cjk_font() {
+fn chinese_shows_with_an_installed_or_bundled_cjk_font() {
     assert_eq!(locale_language("zh-CN"), Some("zh"));
+    assert_eq!(locale_language("zh-TW"), Some("zh-TW"));
+    assert_eq!(locale_language("zh-HK"), Some("zh-TW"));
+    assert_eq!(locale_language("zh-Hant"), Some("zh-TW"));
     let mut app = CadApp::new(Session::new(), Services::default());
     let r = app.run("ui.language", json!({"lang": "zh"})).unwrap();
     assert_eq!(r["interfaceLanguage"], "zh");
-    let font = crate::theme::cjk_font();
-    assert_eq!(app.language(), if font.is_some() { "zh" } else { "en" });
+    assert_eq!(app.language(), "zh");
     assert_eq!(r["shown"], app.language());
     assert!(crate::theme::can_show("uk") && crate::theme::can_show("en"));
-    if font.is_none() {
-        assert!(app.status.as_ref().is_some_and(|(s, _)| s.contains("No Chinese font")));
-    }
+    let r = app.run("ui.language", json!({"lang": "zh-TW"})).unwrap();
+    assert_eq!(r["interfaceLanguage"], "zh-TW");
+    assert_eq!(app.language(), "zh-TW");
+    assert_eq!(r["shown"], "zh-TW");
 }
