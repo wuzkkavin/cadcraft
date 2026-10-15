@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<title>H5P 示範｜Gemini 影片邊看邊答題</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:"jf open 粉圓體","PingFang TC","Microsoft JhengHei",sans-serif;background:#f3f8f3;color:#12332a;line-height:1.6}
+.wrap{max-width:960px;margin:0 auto;padding:20px 16px 48px}
+.badge{display:inline-block;background:#0c513d;color:#fff;padding:4px 14px;border-radius:999px;font-size:14px;letter-spacing:1px}
+h1{font-size:28px;line-height:1.35;margin:14px 0 6px}
+.sub{color:#4a6b5f;font-size:16px;margin:0 0 18px}
+.how{background:#fff;border:2px solid #0c513d;border-radius:14px;padding:14px 18px;display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.how div{flex:1;min-width:180px;text-align:center;font-size:17px}
+.how b{display:block;font-size:22px;color:#0c513d}
+.player-box{position:relative;background:#000;border-radius:14px;overflow:hidden;aspect-ratio:16/9}
+.player-box iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.overlay{position:absolute;inset:0;background:rgba(8,35,27,.93);color:#fff;display:none;padding:22px;overflow:auto}
+.overlay.show{display:block}
+.overlay h2{font-size:22px;margin:0 0 6px;color:#ffd970}
+.overlay .qtext{font-size:20px;margin:0 0 14px}
+.opt{display:block;width:100%;text-align:left;background:#fff;color:#12332a;border:0;border-radius:10px;padding:13px 16px;font-size:18px;margin:0 0 10px;cursor:pointer;font-family:inherit}
+.opt:hover{background:#eaf4ec}
+.opt.right{background:#2e9e63;color:#fff}
+.opt.wrong{background:#d64545;color:#fff}
+.feedback{font-size:17px;min-height:28px;margin:8px 0}
+.btn{background:#ffd970;color:#12332a;border:0;border-radius:10px;padding:12px 22px;font-size:18px;cursor:pointer;font-family:inherit;font-weight:700}
+.btn.green{background:#0c513d;color:#fff}
+.btn:disabled{opacity:.45;cursor:default}
+.bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:14px 0}
+.dot{width:38px;height:38px;border-radius:50%;background:#d7e5da;color:#4a6b5f;display:flex;align-items:center;justify-content:center;font-weight:700}
+.dot.done{background:#0c513d;color:#fff}
+.score{margin-left:auto;font-size:18px;font-weight:700}
+.quick{background:#fff;border-radius:14px;padding:14px 18px;margin-top:6px}
+.quick p{margin:0 0 10px;font-weight:700}
+.quick button{background:#eaf4ec;border:2px solid #0c513d;color:#0c513d;border-radius:999px;padding:8px 16px;font-size:16px;margin:0 8px 8px 0;cursor:pointer;font-family:inherit}
+.end{display:none;background:#fff;border:2px solid #ffd970;border-radius:14px;padding:22px;text-align:center;margin-top:16px}
+.end.show{display:block}
+.end .big{font-size:30px;font-weight:800;color:#0c513d}
+.note{font-size:14px;color:#6b857c;margin-top:16px;text-align:center}
+@media(max-width:600px){h1{font-size:22px}.overlay h2{font-size:19px}.overlay .qtext{font-size:18px}.opt{font-size:16px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<span class="badge">H5P DEMO 示範版</span>
+<h1>谷歌又殺回來了！Gemini 新模型實測<br>邊看邊答題</h1>
+<p class="sub">原影片：零度解說（YouTube）｜長度 10 分 42 秒｜這是 Muse 幫你做好的 H5P 示範，你不用做任何設定，按播放就好。</p>
+
+<div class="how">
+<div><b>1</b>按播放，看影片</div>
+<div><b>2</b>影片會自己停下來出題</div>
+<div><b>3</b>點一個答案，答完繼續看</div>
+</div>
+
+<div class="bar">
+<span>答題進度：</span>
+<span class="dot" id="dot0">1</span>
+<span class="dot" id="dot1">2</span>
+<span class="dot" id="dot2">3</span>
+<span class="dot" id="dot3">4</span>
+<span class="score" id="scoreText">得分：0 / 4</span>
+</div>
+
+<div class="player-box">
+<iframe id="player" src="https://www.youtube-nocookie.com/embed/21JESU76KY0?enablejsapi=1&rel=0&modestbranding=1" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; encrypted-media; picture-in-picture" allowfullscreen title="Gemini 影片"></iframe>
+<div class="overlay" id="overlay">
+<h2 id="qTitle">小考時間</h2>
+<p class="qtext" id="qText"></p>
+<div id="qOpts"></div>
+<p class="feedback" id="qFeed"></p>
+<button class="btn" id="continueBtn" style="display:none">答對了，繼續看影片 ▶</button>
+</div>
+</div>
+
+<div class="quick">
+<p>不想等？Demo 快速體驗（點了直接跳到題目出現前 3 秒）：</p>
+<button data-jump="0">跳到第 1 題</button>
+<button data-jump="1">跳到第 2 題</button>
+<button data-jump="2">跳到第 3 題</button>
+<button data-jump="3">跳到第 4 題</button>
+</div>
+
+<div class="end" id="endBox">
+<p class="big" id="endTitle">影片看完了！</p>
+<p id="endText"></p>
+<button class="btn green" id="replayBtn">從頭再看一次</button>
+</div>
+
+<p class="note">說明：這是 H5P「互動影片」的玩法示範。正式的 .h5p 檔案也一併附上，可以匯入 Lumi 或 Moodle 使用；這個 HTML 版是體驗版，效果一模一樣。注意：YouTube 現在會擋「直接從電腦檔案打開」的嵌入影片（錯誤 153），所以請用 Muse 給你的線上網址打開，或把檔案放到網站上再開。看影片需要連上網路。</p>
+</div>
+
+<script>
+var VIDEO_ID = "21JESU76KY0";
+var QUESTIONS = [
+{
+time: 100,
+title: "第 1 題（看完開頭介紹後）",
+text: "這支影片介紹的主角，是哪一個新模型？",
+options: ["Gemini 4 Argon", "GPT-5.2", "Claude 新版", "Grok 新版"],
+correct: 0,
+ok: "答對了！影片主角就是 Google 新發布的 Gemini 4 Argon。",
+no: "再想一下，影片標題一開始就寫了它的名字喔。"
+},
+{
+time: 240,
+title: "第 2 題（文件分析實測後）",
+text: "剛剛這一段實測，主要在測試模型的哪一種能力？",
+options: ["剪輯影片", "看懂文件、用提示詞做分析", "把照片修圖", "翻譯歌曲"],
+correct: 1,
+ok: "答對了！這段是在測它讀文件、照提示詞分析的本事。",
+no: "不對喔，剛剛畫面裡一直在處理文件和提示詞。"
+},
+{
+time: 380,
+title: "第 3 題（程式碼實測後）",
+text: "剛剛這一段，示範了用 AI 做哪兩件事？",
+options: ["做 Excel 報表和寄信", "寫程式碼和做 SVG 動畫", "剪音樂和錄音", "訂機票和訂房間"],
+correct: 1,
+ok: "答對了！它現場寫了程式，還做出了會動的 SVG 動畫。",
+no: "再想一下，畫面裡出現的是程式碼和動畫。"
+},
+{
+time: 525,
+title: "第 4 題（網頁生成實測後）",
+text: "剛剛這一段最讓人驚訝的是什麼？",
+options: ["AI 直接生成網頁，還能即時預覽", "AI 幫忙掃地", "AI 自己買電腦", "AI 打電話給客服"],
+correct: 0,
+ok: "答對了！它把網頁直接生出來，馬上就能看到成品。",
+no: "不對喔，剛剛它現場生出了一個網頁給你看。"
+},
+{
+time: 9999,
+title: "最後一題（看完教學後想一想）",
+text: "影片最後教大家，可以免費領多久的 Google AI Pro 會員？",
+options: ["一個月", "三個月", "一年", "一週"],
+correct: 2,
+ok: "答對了！是一年，這也是影片標題寫的重點。",
+no: "再想一下，影片標題有寫免費領的期限喔。"
+}
+];
+var player = null;
+var current = -1;
+var answered = [false, false, false, false, false];
+var firstTry = [true, true, true, true, true];
+var score = 0;
+var timer = null;
+
+var tag = document.createElement("script");
+tag.src = "https://www.youtube.com/iframe_api";
+document.head.appendChild(tag);
+
+function onYouTubeIframeAPIReady() {
+  player = new YT.Player("player", {
+    events: {
+      onStateChange: function(e) {
+        if (e.data === YT.PlayerState.PLAYING) startWatch();
+        if (e.data === YT.PlayerState.PAUSED) stopWatch();
+        if (e.data === YT.PlayerState.ENDED) { stopWatch(); showFinal(); }
+      }
+    }
+  });
+}
+function startWatch() {
+  stopWatch();
+  timer = setInterval(checkTime, 400);
+}
+function stopWatch() {
+  if (timer) { clearInterval(timer); timer = null; }
+}
+function checkTime() {
+  if (!player || !player.getCurrentTime) return;
+  var t = player.getCurrentTime();
+  for (var i = 0; i < 4; i++) {
+    if (!answered[i] && t >= QUESTIONS[i].time && current === -1) {
+      showQuestion(i);
+      break;
+    }
+  }
+}
+function showQuestion(i) {
+  current = i;
+  player.pauseVideo();
+  var q = QUESTIONS[i];
+  document.getElementById("qTitle").textContent = q.title;
+  document.getElementById("qText").textContent = q.text;
+  document.getElementById("qFeed").textContent = "";
+  document.getElementById("continueBtn").style.display = "none";
+  var box = document.getElementById("qOpts");
+  box.innerHTML = "";
+  q.options.forEach(function(optText, idx) {
+    var b = document.createElement("button");
+    b.className = "opt";
+    b.textContent = optText;
+    b.onclick = function() { pickAnswer(idx, b); };
+    box.appendChild(b);
+  });
+  document.getElementById("overlay").classList.add("show");
+}
+function pickAnswer(idx, btn) {
+  if (current < 0) return;
+  var q = QUESTIONS[current];
+  var feed = document.getElementById("qFeed");
+  if (idx === q.correct) {
+    btn.classList.add("right");
+    feed.textContent = q.ok;
+    if (firstTry[current]) score++;
+    answered[current] = true;
+    document.querySelectorAll(".opt").forEach(function(o) { o.disabled = true; });
+    document.getElementById("continueBtn").style.display = "inline-block";
+    updateBar();
+  } else {
+    btn.classList.add("wrong");
+    btn.disabled = true;
+    firstTry[current] = false;
+    feed.textContent = q.no + " 再試一次！";
+  }
+}
+function updateBar() {
+  for (var i = 0; i < 4; i++) {
+    if (answered[i]) document.getElementById("dot" + i).classList.add("done");
+  }
+  var doneCount = answered.slice(0, 4).filter(Boolean).length;
+  document.getElementById("scoreText").textContent = "得分：" + score + " / 4（已答 " + doneCount + " 題）";
+}
+document.getElementById("continueBtn").onclick = function() {
+  document.getElementById("overlay").classList.remove("show");
+  current = -1;
+  if (player) player.playVideo();
+};
+document.querySelectorAll("[data-jump]").forEach(function(btn) {
+  btn.onclick = function() {
+    var i = parseInt(btn.getAttribute("data-jump"), 10);
+    if (!player || !player.seekTo) return;
+    answered[i] = false;
+    document.getElementById("endBox").classList.remove("show");
+    player.seekTo(Math.max(0, QUESTIONS[i].time - 3), true);
+    player.playVideo();
+  };
+});
+function showFinal() {
+  if (!answered[4]) { showQuestion(4); document.getElementById("continueBtn").textContent = "看我的成績"; return; }
+  var box = document.getElementById("endBox");
+  var total = score;
+  document.getElementById("endText").textContent = "你在影片中的題目拿到 " + total + " 分（滿分含最後一題共 5 分）。" + (total >= 4 ? "太厲害了，你真的有認真看！" : total >= 2 ? "不錯喔，有抓到重點！" : "沒關係，再看一次就會更清楚了。");
+  box.classList.add("show");
+  box.scrollIntoView({ behavior: "smooth" });
+}
+document.getElementById("replayBtn").onclick = function() {
+  answered = [false, false, false, false, false];
+  firstTry = [true, true, true, true, true];
+  score = 0; current = -1;
+  for (var i = 0; i < 4; i++) document.getElementById("dot" + i).classList.remove("done");
+  document.getElementById("scoreText").textContent = "得分：0 / 4";
+  document.getElementById("continueBtn").textContent = "答對了，繼續看影片 ▶";
+  document.getElementById("endBox").classList.remove("show");
+  if (player) { player.seekTo(0, true); player.playVideo(); }
+};
+</script>
+</body>
+</html>
