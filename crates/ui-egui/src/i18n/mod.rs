@@ -255,6 +255,13 @@ thread_local! {
     static CURRENT: Cell<&'static str> = const { Cell::new("en") };
 }
 
+/// The language code of the render in progress (this fork: lets zh-TW-only
+/// additions, such as the Traditional Chinese edition credit in About, show
+/// only when the Traditional Chinese catalog is active).
+pub fn current_code() -> &'static str {
+    CURRENT.with(|l| l.get())
+}
+
 pub fn with_language<R>(language: &'static str, draw: impl FnOnce() -> R) -> R {
     struct Restore(&'static str);
     impl Drop for Restore {

@@ -335,6 +335,13 @@ fn about(ctx: &egui::Context, open: &mut bool) {
                     ui.hyperlink_to(crate::tl!("Join us on Discord"), "https://discord.gg/artcraft");
                     ui.add_space(6.0);
                     ui.label(RichText::new(crate::tl!("MIT OR Apache-2.0. Not affiliated with Autodesk, Inc.")).small().color(t.text_faint));
+                    // Fork-only Traditional Chinese edition credit (owner's standing rule,
+                    // 2026-10-16): shown in the About tab only when the interface language
+                    // is Traditional Chinese (Taiwan).
+                    if crate::i18n::current_code() == "zh-TW" {
+                        ui.add_space(8.0);
+                        ui.label(RichText::new("©Copyright 2026 By 吳治綱 繁體中文化").strong());
+                    }
                 }
             }
         });
