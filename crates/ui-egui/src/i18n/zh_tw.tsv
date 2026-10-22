@@ -1138,7 +1138,7 @@
 	Viewport {id}	視埠 {id}
 	Viewports	視埠
 	W	W
-	WCS ⌄	WCS ⌄
+	WCS	WCS
 	White	White
 	Width factor	寬度係數
 	Window	視窗
@@ -1333,3 +1333,31 @@ menu	Modify	修改
 	Xref and Block In-place Editing	外部參照與圖塊就地編輯
 	Xrefs	外部參照
 	contains authoring elements. Open in Block Editor?	含有製作元素。要在圖塊編輯器中開啟嗎？
+	Add…	新增…
+	Alias	別名
+	Alias file: {file}	別名檔：{file}
+	Analyze Shapes	分析形狀
+	Break-line Symbol	折斷線符號
+	Choose the command the alias starts.	選擇此別名要啟動的指令。
+	Command	指令
+	Convert Text to Mtext	將文字轉換為多行文字
+	Customize	自訂
+	Define each corner of the selection window with a separate click.	以個別點擊定義選取窗的每個角點。
+	Discard	放棄
+	Edit Command Aliases (PGP)...	編輯指令別名 (PGP)...
+	Edit…	編輯…
+	Explode Attributes to Text	將屬性分解為文字
+	Express Tools	Express Tools
+	Interface scale	介面比例
+	Island	孤島
+	More than {n} aliases.	超過 {n} 個別名。
+	Move/Copy/Rotate	移動/複製/旋轉
+	No alias file loaded. REINIT replaces these aliases with a file's.	尚未載入別名檔。REINIT 會以某個檔案的別名取代這些別名。
+	Save alias	儲存別名
+	Select boundaries to remove	選取要移除的邊界
+	Select using two clicks only	只用兩次點擊選取
+	Type an alias name.	輸入別名名稱。
+	built-in	內建
+	overrides built-in	覆寫內建
+	{alias} is already defined; select it and use Edit.	{alias} 已定義；請選取它並使用「編輯」。
+	{command} is an unknown command.	{command} 是未知的指令。
