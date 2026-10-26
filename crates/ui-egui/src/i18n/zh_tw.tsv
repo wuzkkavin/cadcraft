@@ -187,6 +187,7 @@
 	Current selection	目前選取
 	Current: {color}	目前：{color}
 	Cut	剪下
+	Cut with Base Point	以基點剪切
 	Cyan	青色
 	Cylinder	圓柱
 	DWG	DWG
@@ -731,6 +732,7 @@
 	Rename Layout	重新命名配置
 	Rename Text Style	重新命名字型樣式
 	Rename...	重新命名...
+	Replace Block...	取代圖塊...
 	Repeat {command}	重複 {command}
 	Requires a point (x,y, @dx,dy or @d<a).	需要一個點 (x,y, @dx,dy 或 @d<a)。
 	Reset Palettes	重設選項板
